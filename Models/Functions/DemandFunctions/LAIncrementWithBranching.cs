@@ -18,6 +18,8 @@ namespace Models.Functions.DemandFunctions
     /// that no leaf exceeds the maximum area permitted by the model parameters (i.e., relative leaf area multiplied by the largest leaf area)
     /// </summary>
     [Serializable]
+    [ViewName("UserInterface.Views.PropertyView")]
+    [PresenterName("UserInterface.Presenters.PropertyPresenter")]
     public class LAIncrementWithBranching : Model, IFunction
     {
         /// <summary>The plant population</summary>
@@ -44,6 +46,10 @@ namespace Models.Functions.DemandFunctions
         [Link(Type = LinkType.Child, ByName = true)]
         private XYPairs relativeArea = null;
 
+        /// <summary>Track leaf sizes?</summary>
+        [Description("Track leaf sizes?")]
+        public bool DoTrackLeafSize { get; set; } = true;
+
         /// <summary>The lag (in terms of node number) between each individual branch (including the main stem) and the main stem</summary>
         private int[] branchNodeLag = Enumerable.Repeat(-1, 20).ToArray();
 
@@ -69,40 +75,56 @@ namespace Models.Functions.DemandFunctions
             // Main stem doesn't have a lag, so set it to 0.
             branchNodeLag[0] = 0;
 
-            double plantLeafGrowth = 0;
-
-            for (int br = 0; br <= numBranches; br++)
+            if (DoTrackLeafSize)
             {
-                if (branchNodeLag[br] < 0)
-                    branchNodeLag[br] = (int)currNodeNumber;
+                double plantLeafGrowth = 0;
 
-                // Number of nodes on branch `br`.
-                int currBranchNodeNumber = (int)(currNodeNumber - branchNodeLag[br]);
-
-                for (int node = 0; node <= currBranchNodeNumber; node++)
+                for (int br = 0; br <= numBranches; br++)
                 {
-                    // Keep the old size of the leaf.
-                    double oldLeafRelSize = leafRelSize[br, node];
+                    if (branchNodeLag[br] < 0)
+                        branchNodeLag[br] = (int)currNodeNumber;
 
-                    // Maximum size of leaf relative to `largestLeafArea` on this `node` of branch `br`.
-                    double currNodeMaxRelArea = relativeArea.ValueIndexed(node);
+                    // Number of nodes on branch `br`.
+                    int currBranchNodeNumber = (int)(currNodeNumber - branchNodeLag[br]);
 
-                    // Maximum possible growth of leaf on this `node` of branch `br`. 
-                    double maxNodeLeafGrowth = lAR.Value() * currNodeMaxRelArea * largestLeafArea;
+                    for (int node = 0; node <= currBranchNodeNumber; node++)
+                    {
+                        // Keep the old size of the leaf.
+                        double oldLeafRelSize = leafRelSize[br, node];
 
-                    // Updated size of the leaf on this `node` of branch `br`. 
-                    leafRelSize[br, node] = Math.Min(oldLeafRelSize + maxNodeLeafGrowth, currNodeMaxRelArea);
+                        // Maximum size of leaf relative to `largestLeafArea` on this `node` of branch `br`.
+                        double currNodeMaxRelArea = relativeArea.ValueIndexed(node);
 
-                    // Actual growth of leaf on this `node` of branch `br`. 
-                    double actualNodeLeafGrowth = leafRelSize[br, node] - oldLeafRelSize;
+                        // Maximum possible growth of leaf on this `node` of branch `br`. 
+                        double maxNodeLeafRelGrowth = lAR.Value() * currNodeMaxRelArea;
 
-                    // Total leaf growth of the plant.
-                    plantLeafGrowth += actualNodeLeafGrowth;
+                        // Updated size of the leaf on this `node` of branch `br`. 
+                        leafRelSize[br, node] = Math.Min(oldLeafRelSize + maxNodeLeafRelGrowth, currNodeMaxRelArea);
+
+                        // Actual growth of leaf on this `node` of branch `br`. 
+                        double actualNodeLeafGrowth = leafRelSize[br, node] - oldLeafRelSize;
+
+                        // Total leaf growth of the plant.
+                        plantLeafGrowth += actualNodeLeafGrowth * largestLeafArea;
+                    }
                 }
-            }
 
-            // Total increase in leaf area at the crop level.
-            return plantLeafGrowth * plantNumber.Value();
+                // Total increase in leaf area at the crop level.
+                return plantLeafGrowth * plantNumber.Value();
+
+            } else
+            {
+                double cumDelta = relativeArea.ValueIndexed(currNodeNumber - branchNodeLag[0]);
+
+                for (int i = 1; i < numBranches + 1; i++)
+                {
+                    if (branchNodeLag[i] < 0)
+                        branchNodeLag[i] = (int)currNodeNumber;
+
+                    cumDelta += relativeArea.ValueIndexed(currNodeNumber - branchNodeLag[i]);
+                }
+                return cumDelta * plantNumber.Value() * largestLeafArea * lAR.Value();
+            }
         }
     }
 }
