@@ -17,10 +17,9 @@ namespace Models.Core
     /// Encapsulates a collection of simulations. It is responsible for creating this collection, changing the structure of the components within the simulations, renaming components, adding new ones, deleting components. The user interface talks to an instance of this class.
     /// </summary>
     [Serializable]
-    [ScopedModel]
     [ViewName("UserInterface.Views.MarkdownView")]
     [PresenterName("UserInterface.Presenters.GenericPresenter")]
-    public class Simulations : Model, ISimulationEngine
+    public class Simulations : Model, ISimulationEngine, IScopedModel
     {
         [NonSerialized]
         private Links links;
@@ -84,9 +83,9 @@ namespace Models.Core
         /// <summary>
         /// Initialise model.
         /// </summary>
-        public override void OnCreated(Node node)
+        public override void OnCreated()
         {
-            base.OnCreated(node);
+            base.OnCreated();
             FileName = Node.FileName;
         }
 
@@ -133,6 +132,7 @@ namespace Models.Core
                 File.Move(FileName, bakFileName);
             File.Move(tempFileName, FileName);
             this.FileName = FileName;
+            Node.FileName = FileName;
             SetFileNameInAllSimulations();
         }
 
@@ -178,7 +178,10 @@ namespace Models.Core
             foreach (Model child in this.FindAllDescendants().ToList())
             {
                 if (child is Simulation)
+                {
                     (child as Simulation).FileName = FileName;
+                    (child as Simulation).Node.FileName = FileName;
+                }
                 else if (child is DataStore)
                 {
                     DataStore storage = child as DataStore;

@@ -95,10 +95,18 @@ namespace Models
         /// <summary>
         /// Instance has been created.
         /// </summary>
-        public override void OnCreated(Node node)
+        public override void OnCreated()
         {
-            base.OnCreated(node);
+            base.OnCreated();
             RebuildScriptModel();
+        }
+
+        /// <summary>
+        /// Called when the model is about to be deserialised.
+        /// </summary>
+        public override void OnSerialising()
+        {
+            GetParametersFromScriptModel();
         }
 
         /// <summary>
@@ -158,7 +166,6 @@ namespace Models
                 if (Script == null)
                 {
                     CodeForLastSuccessfullCompile = null;
-                    Parameters = null;
                     if (Errors != null)
                         throw new Exception($"Errors found in manager model {Name}{Environment.NewLine}{Errors}");
                 }
