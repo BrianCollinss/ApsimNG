@@ -1,13 +1,8 @@
-﻿using APSIM.Numerics;
-using DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using Models.Core;
-using Models.GrazPlan;
+﻿using Models.Core;
 using Models.PMF;
-using Models.PMF.Interfaces;
-using Models.Surface;
 using System;
 using System.Linq;
+using APSIM.Core;
 
 namespace Models.Functions.DemandFunctions
 {
