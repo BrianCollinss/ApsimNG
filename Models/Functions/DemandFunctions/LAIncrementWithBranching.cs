@@ -17,6 +17,10 @@ namespace Models.Functions.DemandFunctions
     [PresenterName("UserInterface.Presenters.PropertyPresenter")]
     public class LAIncrementWithBranching : Model, IFunction
     {
+        /// <summary>The plant</summary>
+        [Link]
+        protected Plant parentPlant = null;
+
         /// <summary>The plant population</summary>
         [Link(Type = LinkType.Child, ByName = true)]
         private IFunction plantNumber = null;
@@ -59,9 +63,7 @@ namespace Models.Functions.DemandFunctions
             double currNodeNumber = nodeNumber.Value();
             int numBranches = (int)branchNumber.Value();
 
-            Plant myPlant = nodeNumber.FindAncestor<Plant>(); ;
-
-            if (!myPlant.IsAlive)
+            if (!parentPlant.IsAlive)
             {
                 branchNodeLag = Enumerable.Repeat(-1, 20).ToArray();
                 return 0;
